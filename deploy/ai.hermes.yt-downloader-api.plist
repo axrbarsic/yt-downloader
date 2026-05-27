@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>ai.hermes.yt-downloader-api</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/alex/Library/Python/3.9/bin/uvicorn</string>
+        <string>server:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8787</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/alex/Developer/yt-downloader</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/alex/.hermes/logs/yt-downloader-api.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/alex/.hermes/logs/yt-downloader-api.err.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/alex/Library/Python/3.9/bin</string>
+    </dict>
+</dict>
+</plist>
