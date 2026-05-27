@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="description" content="Скачай любое видео с YouTube на свой телефон">
+    <title>YT Downloader</title>
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬇️</text></svg>">
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --surface: #1a1a1a;
+            --surface2: #252525;
+            --text: #ffffff;
+            --text2: #aaaaaa;
+            --accent: #ff0000;
+            --accent2: #cc0000;
+            --green: #4caf50;
+            --radius: 16px;
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            padding: 20px 20px 12px;
+            text-align: center;
+        }
+        .logo {
+            font-size: 36px;
+            margin-bottom: 4px;
+        }
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 0 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 6px;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .input-group:focus-within {
+            border-color: var(--accent);
+        }
+        .input-group input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 16px;
+            padding: 12px 8px;
+            min-width: 0;
+        }
+        .input-group input::placeholder {
+            color: #666;
+        }
+        .paste-btn {
+            background: var(--surface2);
+            border: none;
+            color: var(--text2);
+            font-size: 13px;
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .paste-btn:active {
+            background: #333;
+            color: #fff;
+        }
+
+        .quality-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .quality-chip {
+            background: var(--surface);
+            border: 2px solid transparent;
+            color: var(--text2);
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex: 1;
+            text-align: center;
+            min-width: 60px;
+        }
+        .quality-chip.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .quality-chip:active {
+            transform: scale(0.96);
+        }
+
+        .btn-download {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--accent);
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+        .btn-download:active {
+            transform: scale(0.97);
+            background: var(--accent2);
+        }
+        .btn-download:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: none;
+        }
+        .preview-card.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity:0; transform:translateY(8px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .preview-thumb {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            display: block;
+            background: #111;
+        }
+        .preview-info {
+            padding: 14px 16px;
+        }
+        .preview-title {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .preview-meta {
+            font-size: 12px;
+            color: var(--text2);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .progress-wrap {
+            display: none;
+            margin-top: -8px;
+        }
+        .progress-wrap.visible {
+            display: block;
+        }
+        .progress-bar {
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .progress-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text2);
+            margin-top: 6px;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            padding: 10px;
+            border-radius: 12px;
+            display: none;
+        }
+        .status.visible { display: block; }
+        .status.error { background: #3e1010; color: #ff6b6b; }
+        .status.success { background: #0d3b1e; color: #4caf50; }
+
+        .history-section {
+            margin-top: auto;
+            padding-top: 8px;
+        }
+        .history-title {
+            font-size: 13px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .history-item {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .history-item:active { background: var(--surface2); }
+        .history-thumb {
+            width: 48px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: #222;
+        }
+        .history-info { flex:1; min-width:0; }
+        .history-title-text {
+            font-size: 13px;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-date {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 12px 16px calc(12px + var(--safe-bottom));
+            font-size: 11px;
+            color: #444;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Адаптация под тёмную тему iOS */
+        @supports (-webkit-overflow-scrolling: touch) {
+            input[type="text"] { font-size: 16px !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">⬇️</div>
+    <div class="title">YT Downloader</div>
+    <div class="subtitle">Скачай любое видео с YouTube</div>
+</div>
+
+<div class="main">
+    <!-- Поле ввода -->
+    <div class="input-group" id="inputGroup">
+        <input type="text" id="urlInput" placeholder="Вставь ссылку на YouTube..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <button class="paste-btn" id="pasteBtn">Вставить</button>
+    </div>
+
+    <!-- Выбор качества -->
+    <div class="quality-row" id="qualityRow">
+        <button class="quality-chip active" data-quality="720p">720p</button>
+        <button class="quality-chip" data-quality="1080p">1080p</button>
+        <button class="quality-chip" data-quality="audio">MP3</button>
+    </div>
+
+    <!-- Кнопка скачивания -->
+    <button class="btn-download" id="downloadBtn" disabled>
+        <span id="btnText">Вставь ссылку</span>
+    </button>
+
+    <!-- Статус -->
+    <div class="status" id="status"></div>
+
+    <!-- Прогресс -->
+    <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText"></div>
+    </div>
+
+    <!-- Превью -->
+    <div class="preview-card" id="previewCard">
+        <img class="preview-thumb" id="previewThumb" alt="" loading="lazy">
+        <div class="preview-info">
+            <div class="preview-title" id="previewTitle"></div>
+            <div class="preview-meta" id="previewMeta"></div>
+        </div>
+    </div>
+
+    <!-- История -->
+    <div class="history-section" id="historySection" style="display:none">
+        <div class="history-title">Недавние</div>
+        <div class="history-list" id="historyList"></div>
+    </div>
+</div>
+
+<div class="footer">YT Downloader · не affiliated with YouTube</div>
+
+<script>
+// --- Конфигурация ---
+const API_BASE = 'https://yt-dlp-api.hermes-functions.workers.dev';
+// Фолбэк: локальный сервер для разработки
+const LOCAL_API = 'http://localhost:8787';
+
+// --- Состояние ---
+let selectedQuality = '720p';
+let currentVideoId = null;
+let currentInfo = null;
+let isDownloading = false;
+
+// --- DOM элементы ---
+const urlInput = document.getElementById('urlInput');
+const pasteBtn = document.getElementById('pasteBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const btnText = document.getElementById('btnText');
+const statusEl = document.getElementById('status');
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const previewCard = document.getElementById('previewCard');
+const previewThumb = document.getElementById('previewThumb');
+const previewTitle = document.getElementById('previewTitle');
+const previewMeta = document.getElementById('previewMeta');
+const historySection = document.getElementById('historySection');
+const historyList = document.getElementById('historyList');
+
+// --- Извлечение ID видео ---
+function extractVideoId(url) {
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+        /^([a-zA-Z0-9_-]{11})$/
+    ];
+    for (const p of patterns) {
+        const m = url.match(p);
+        if (m) return m[1];
+    }
+    return null;
+}
+
+// --- Формат длительности ---
+function formatDuration(seconds) {
+    if (!seconds) return '';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+// --- Формат числа просмотров ---
+function formatViews(n) {
+    if (!n) return '';
+    if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+    return n.toString();
+}
+
+// --- API вызов ---
+async function apiCall(endpoint, data) {
+    const urls = [API_BASE, LOCAL_API];
+    let lastError = null;
+    
+    for (const base of urls) {
+        try {
+            const resp = await fetch(`${base}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (resp.ok) return await resp.json();
+            const err = await resp.json().catch(() => ({error: resp.statusText}));
+            lastError = err;
+        } catch(e) {
+            lastError = {error: e.message};
+        }
+    }
+    throw lastError || new Error('API недоступен');
+}
+
+// --- Получение информации о видео ---
+async function fetchVideoInfo(videoId) {
+    showStatus('', '');
+    try {
+        const data = await apiCall('/info', { videoId });
+        currentInfo = data;
+        currentVideoId = videoId;
+        
+        // Показываем превью
+        previewThumb.src = data.thumbnail || `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+        previewTitle.textContent = data.title;
+        previewMeta.innerHTML = [
+            data.duration ? `⏱ ${formatDuration(data.duration)}` : '',
+            data.viewCount ? `👁 ${formatViews(data.viewCount)}` : '',
+            data.channel ? `📺 ${data.channel}` : ''
+        ].filter(Boolean).join(' · ');
+        previewCard.classList.add('visible');
+        
+        // Обновляем кнопку
+        updateDownloadButton();
+        enableQualityButtons(data.formats || []);
+        
+    } catch(e) {
+        showStatus(e.error || 'Не удалось получить информацию о видео', 'error');
+        resetPreview();
+        currentVideoId = null;
+        currentInfo = null;
+        updateDownloadButton();
+    }
+}
+
+// --- Доступные форматы ---
+function enableQualityButtons(formats) {
+    const chips = document.querySelectorAll('.quality-chip');
+    const has1080 = formats.includes('1080p');
+    const has720 = formats.includes('720p') || formats.includes('720p60');
+    const hasAudio = formats.includes('audio');
+    
+    chips.forEach(chip => {
+        const q = chip.dataset.quality;
+        if (q === '1080p') chip.style.display = has1080 ? '' : 'none';
+        if (q === '720p') chip.style.display = has720 ? '' : 'none';
+        if (q === 'audio') chip.style.display = hasAudio ? '' : 'none';
+    });
+}
+
+// --- Скачивание ---
+async function startDownload() {
+    if (isDownloading || !currentVideoId) return;
+    
+    isDownloading = true;
+    downloadBtn.disabled = true;
+    btnText.innerHTML = '<span class="spinner"></span>Подготовка...';
+    progressWrap.classList.add('visible');
+    progressFill.style.width = '10%';
+    progressText.textContent = 'Получаю ссылку...';
+    hideStatus();
+    
+    try {
+        const data = await apiCall('/download', {
+            videoId: currentVideoId,
+            quality: selectedQuality
+        });
+        
+        if (data.url) {
+            progressFill.style.width = '90%';
+            progressText.textContent = 'Начинаю загрузку...';
+            
+            // Скачиваем через временную ссылку
+            await triggerDownload(data.url, data.filename || `${currentVideoId}.mp4`);
+            
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ Готово!';
+            showStatus('Видео скачано! Проверь загрузки телефона 📥', 'success');
+            
+            // Сохраняем в историю
+            saveToHistory(currentVideoId, currentInfo);
+            
+        } else if (data.error) {
+            throw new Error(data.error);
+        }
+    } catch(e) {
+        showStatus(e.error || e.message || 'Ошибка при скачивании', 'error');
+        progressFill.style.width = '0%';
+        progressText.textContent = '';
+    } finally {
+        isDownloading = false;
+        downloadBtn.disabled = false;
+        btnText.textContent = '⬇️ Скачать';
+        setTimeout(() => {
+            if (progressText.textContent.includes('Готово')) {
+                progressWrap.classList.remove('visible');
+            }
+        }, 3000);
+    }
+}
+
+// --- Триггер скачивания файла ---
+async function triggerDownload(url, filename) {
+    // Для мобильных: открываем URL напрямую или используем fetch+blob
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+        // На iOS лучше открыть URL в новой вкладке
+        window.open(url, '_blank');
+    } else {
+        // На Android пробуем скачать через blob
+        try {
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        } catch(e) {
+            // Фолбэк: открываем напрямую
+            window.open(url, '_blank');
+        }
+    }
+}
+
+// --- История ---
+function loadHistory() {
+    try {
+        const raw = localStorage.getItem('ytdl_history');
+        return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+}
+
+function saveToHistory(videoId, info) {
+    let history = loadHistory();
+    // Убираем дубликат
+    history = history.filter(h => h.videoId !== videoId);
+    // Добавляем в начало
+    history.unshift({
+        videoId,
+        title: info?.title || videoId,
+        thumbnail: info?.thumbnail || `https://i.ytimg.com/vi/${videoId}/default.jpg`,
+        date: new Date().toISOString()
+    });
+    // Храним только 20
+    history = history.slice(0, 20);
+    localStorage.setItem('ytdl_history', JSON.stringify(history));
+    renderHistory();
+}
+
+function renderHistory() {
+    const history = loadHistory();
+    if (history.length === 0) {
+        historySection.style.display = 'none';
+        return;
+    }
+    historySection.style.display = 'block';
+    historyList.innerHTML = history.map(h => `
+        <div class="history-item" data-video-id="${h.videoId}">
+            <img class="history-thumb" src="${h.thumbnail}" alt="" loading="lazy" 
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 36%22><rect fill=%22%23222%22 width=%2248%22 height=%2236%22/></svg>'">
+            <div class="history-info">
+                <div class="history-title-text">${h.title}</div>
+                <div class="history-date">${new Date(h.date).toLocaleDateString('ru-RU')}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Обработчики кликов
+    document.querySelectorAll('.history-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const vid = el.dataset.videoId;
+            urlInput.value = `https://youtube.com/watch?v=${vid}`;
+            fetchVideoInfo(vid);
+        });
+    });
+}
+
+// --- UI хелперы ---
+function showStatus(msg, type) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status visible ' + (type || '');
+}
+function hideStatus() {
+    statusEl.className = 'status';
+    statusEl.textContent = '';
+}
+function resetPreview() {
+    previewCard.classList.remove('visible');
+    previewThumb.src = '';
+    previewTitle.textContent = '';
+    previewMeta.textContent = '';
+}
+function updateDownloadButton() {
+    if (currentVideoId && !isDownloading) {
+        downloadBtn.disabled = false;
+        btnText.textContent = `⬇️ Скачать ${selectedQuality === 'audio' ? 'MP3' : selectedQuality}`;
+    } else if (!isDownloading) {
+        downloadBtn.disabled = true;
+        btnText.textContent = 'Вставь ссылку';
+    }
+}
+
+// --- Обработчики событий ---
+urlInput.addEventListener('input', () => {
+    const vid = extractVideoId(urlInput.value.trim());
+    if (vid && vid !== currentVideoId) {
+        fetchVideoInfo(vid);
+    } else if (!vid) {
+        resetPreview();
+        currentVideoId = null;
+        currentInfo = null;
+        updateDownloadButton();
+    }
+});
+
+urlInput.addEventListener('paste', () => {
+    setTimeout(() => urlInput.dispatchEvent(new Event('input')), 100);
+});
+
+pasteBtn.addEventListener('click', async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        urlInput.value = text;
+        urlInput.dispatchEvent(new Event('input'));
+    } catch(e) {
+        urlInput.focus();
+    }
+});
+
+document.querySelectorAll('.quality-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+        document.querySelectorAll('.quality-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedQuality = chip.dataset.quality;
+        updateDownloadButton();
+    });
+});
+
+downloadBtn.addEventListener('click', startDownload);
+
+// --- Инициализация ---
+renderHistory();
+
+// На iOS фокус на инпут
+if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => urlInput.focus(), 500);
+    });
+}
+
+// Обработка deeplink/youtube URL scheme
+if (window.location.hash) {
+    const hash = window.location.hash.substring(1);
+    const vid = extractVideoId(hash);
+    if (vid) {
+        urlInput.value = `https://youtube.com/watch?v=${vid}`;
+        fetchVideoInfo(vid);
+    }
+}
+</script>
+</body>
+</html>
